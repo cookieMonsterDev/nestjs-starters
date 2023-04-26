@@ -1,7 +1,8 @@
 import {
-  ForbiddenException,
   NotFoundException,
   Injectable,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -51,7 +52,7 @@ export class AuthService {
 
       const passwordMatches = await argon.verify(user.hash, password);
       if (!passwordMatches)
-        throw new ForbiddenException('email or password is wrong');
+        throw new UnauthorizedException('email or password is wrong');
 
       const { access_token, refresh_token } = await this.getTokens({
         userId: user.id,
@@ -68,12 +69,54 @@ export class AuthService {
     }
   }
 
-  async refresh({ email, password }: LoginDto) {
-    return '';
+  async refresh({ userId, refresh_token }: UpdateRefreshTokenPayload) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!user) throw new NotFoundException('user not found');
+
+      const rtMatches = await argon.verify(user.refresh_hash, refresh_token);
+      if (!rtMatches) throw new ForbiddenException('Access Denied');
+
+      const { id, name, email, ...rest } = user;
+
+      const { access_token, refresh_token: newRefreshToken } =
+        await this.getTokens({
+          userId: id,
+          email: email,
+        });
+
+      await this.updateRefreshTokenHash({
+        userId: id,
+        refresh_token: newRefreshToken,
+      });
+
+      return { id, name, email, access_token, refresh_token: newRefreshToken };
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async logout({ email, password }: LoginDto) {
-    return '';
+  async logout(userId: number) {
+    try {
+      await this.prisma.user.updateMany({
+        where: {
+          id: userId,
+          refresh_hash: {
+            not: null,
+          },
+        },
+        data: {
+          refresh_hash: null,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateRefreshTokenHash({

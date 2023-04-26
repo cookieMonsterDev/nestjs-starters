@@ -1,17 +1,9 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  Put,
-  Request,
-  Param,
-} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
-import { LocalGuard } from './guards/local.guard';
 import { LoginDto } from './dto/login.dto';
-import { JwtGuard } from './guards/jwt.guard';
+import { GetCurrentUserId, GetCurrentUser } from '../common/decorators';
+import { JwtGuard, LocalGuard, RefreshJwtGuard } from './guards';
 
 @Controller('auth')
 export class AuthController {
@@ -24,18 +16,19 @@ export class AuthController {
 
   @UseGuards(LocalGuard)
   @Post('login')
-  login(@Body() _loginDto: LoginDto, @Request() req) {
-    return req.user;
+  login(@Body() _loginDto: LoginDto, @GetCurrentUser() user) {
+    return user;
   }
 
+  @UseGuards(RefreshJwtGuard)
   @Put('refresh')
-  refresh() {
-    return 'refresh';
+  refresh(@GetCurrentUser() user) {
+    return user;
   }
 
-  // @UseGuards(JwtGuard)
-  @Put('logout/:userId')
-  logout(@Param() userId: number) {
-    return 'logout';
+  @UseGuards(JwtGuard)
+  @Put('logout')
+  logout(@GetCurrentUserId() userId: number) {
+    return this.authService.logout(userId);
   }
 }
