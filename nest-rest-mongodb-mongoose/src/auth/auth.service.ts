@@ -17,20 +17,20 @@ export class AuthService {
 
   async login({ email, password }: LoginDto): Promise<any> {
     try {
-      const { hash, id, role, ...rest } = await this.userModel.findOne({
+      const user = await this.userModel.findOne({
         where: { email },
       });
 
-      const passMatches = await argon2.verify(hash, password);
+      const passMatches = await argon2.verify(user.hash, password);
       if (!passMatches)
         throw new ForbiddenException('Email or password is wrong');
 
       const { accessToken, refreshToken } = await this.generateTokens({
-        userId: id,
-        role: role,
+        userId: user._id,
+        role: user.role,
       });
 
-      return { user: { id, role, ...rest }, accessToken, refreshToken };
+      return { user, accessToken, refreshToken };
     } catch (error) {
       throw error;
     }
@@ -40,17 +40,17 @@ export class AuthService {
     try {
       const passwordHash = await argon2.hash(password);
 
-      const { id, role, hash, ...other } = await this.userModel.create({
+      const user = await this.userModel.create({
         hash: passwordHash,
         ...rest,
       });
 
       const { accessToken, refreshToken } = await this.generateTokens({
-        userId: id,
-        role: role,
+        userId: user._id,
+        role: user.role,
       });
 
-      return { user: { id, role, ...other }, accessToken, refreshToken };
+      return { user, accessToken, refreshToken };
     } catch (error) {
       console.log(error);
       throw error;
@@ -59,14 +59,14 @@ export class AuthService {
 
   async refreshTokens(userId: string): Promise<any> {
     try {
-      const { id, role, hash, ...rest } = await this.userModel.findById(userId);
+      const user = await this.userModel.findById(userId);
 
       const { accessToken, refreshToken } = await this.generateTokens({
-        userId: id,
-        role,
+        userId: user._id,
+        role: user.role,
       });
 
-      return { user: { id, role, ...rest }, accessToken, refreshToken };
+      return { user, accessToken, refreshToken };
     } catch (error) {
       throw error;
     }
