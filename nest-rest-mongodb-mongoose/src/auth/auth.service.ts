@@ -17,9 +17,7 @@ export class AuthService {
 
   async login({ email, password }: LoginDto): Promise<any> {
     try {
-      const user = await this.userModel.findOne({
-        where: { email },
-      });
+      const user = await this.userModel.findOne({ email });
 
       const passMatches = await argon2.verify(user.hash, password);
       if (!passMatches)
