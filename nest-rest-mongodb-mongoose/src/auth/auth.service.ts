@@ -19,6 +19,8 @@ export class AuthService {
     try {
       const user = await this.userModel.findOne({ email });
 
+      if (!user) throw new NotFoundException('User not found');
+
       const passMatches = await argon2.verify(user.hash, password);
       if (!passMatches)
         throw new ForbiddenException('Email or password is wrong');
