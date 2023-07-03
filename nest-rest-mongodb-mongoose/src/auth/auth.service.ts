@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Registerdto } from './dto/register.dto';
 import { JwtPayload } from './types/jwt-payload';
 import { LoginDto } from './dto/login.dto';
