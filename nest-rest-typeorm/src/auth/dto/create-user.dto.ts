@@ -1,13 +1,19 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { UserRoles } from 'src/types';
 
-export class SignIn {
+export class CreateUserDto {
+  @IsNotEmpty()
+  @IsString()
+  username: string;
+
   @IsNotEmpty()
   @IsString()
   @IsEmail()
@@ -33,4 +39,9 @@ export class SignIn {
     message: 'password must have no spaces',
   })
   password: string;
+
+  @IsOptional()
+  @IsString()
+  role: UserRoles;
 }
+

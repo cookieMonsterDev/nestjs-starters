@@ -1,3 +1,4 @@
+import { UserRoles } from 'src/types';
 import {
   Entity,
   Column,
@@ -5,29 +6,27 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn()
   id: string;
+
+  @Column()
+  username: string;
 
   @Column({ unique: true })
   email: string;
 
   @Column()
-  password: string;
+  hash: string
 
-  @Column({ nullable: true })
-  bio: string;
+  @Column({ type: 'enum', enum: UserRoles, default: UserRoles.USER })
+  role: UserRoles;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
-
-  constructor() {
-    this.id = uuidv4();
-  }
 }

@@ -1,6 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { SignIn } from './dto/sign-in.dto';
-import { SignUp } from './dto/sign-up.dto';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { AuthType } from './types';
+import { ConfigService } from '@nestjs/config';
+import { CreateUserDto, LoginUserDto } from './dto';
+import { JwtPayload } from 'src/types/jwt.type';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -10,21 +18,80 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private jwt: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async register(body: SignUp) {
+  async create({ password, ...rest }: CreateUserDto): Promise<AuthType> {
     try {
+      const password_hash = await this.generatePassword(password);
+
       const user = await this.usersRepository.create({
-        ...body
+        hash: password_hash,
+        ...rest,
       });
+      const { hash, ...other } = user;
 
-      await this.usersRepository.save(user);
+      const token = await this.generateToken({ ...other });
 
-      return user;
+      return { user: { ...other }, token };
     } catch (error) {
-      throw new error();
+      throw error;
     }
   }
 
-  async login(body: SignIn) {}
+  async login({ email, password }: LoginUserDto): Promise<AuthType> {
+    try {
+      const user = await this.usersRepository.findOne({ where: { email } });
+
+      if (!user) throw new NotFoundException('Invalid credentials.');
+
+      const passwordMatches = await this.comparePasswords(password, user.hash);
+      if (!passwordMatches)
+        throw new UnauthorizedException('Invalid credentials.');
+
+      const { hash, ...rest } = user;
+
+      const token = await this.generateToken({ ...rest });
+
+      return { user: { ...rest }, token };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async generatePassword(password: string): Promise<string> {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(password, salt);
+      return hash;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async comparePasswords(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
+    try {
+      const res = await bcrypt.compare(password, hash);
+      return res;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async generateToken(payload: JwtPayload) {
+    try {
+      const token = await this.jwt.signAsync(payload, {
+        secret: this.configService.get('AUTH_TOKEN_SECRET'),
+        expiresIn: '15m',
+      });
+
+      return token;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
