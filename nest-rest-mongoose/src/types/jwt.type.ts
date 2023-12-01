@@ -1,3 +1,3 @@
-import { UserDocument } from "src/user/schema/user.schema";
+import { User } from "src/user/schema/user.schema";
 
-export type JwtPayload = Omit<UserDocument, 'hash'>;
+export type JwtPayload = Omit<User, 'hash'>;

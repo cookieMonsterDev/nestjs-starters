@@ -1,8 +1,8 @@
-import { UserDocument } from "src/user/schema/user.schema";
+import { User } from "src/user/schema/user.schema";
 
 export enum UserRoles {
   USER = 'USER',
   ADMIN = 'ADMIN',
 }
 
-export type PublicUser = Omit<UserDocument, 'hash'>;
+export type PublicUser = Omit<User, 'hash'>;

@@ -9,24 +9,23 @@ import * as bcrypt from 'bcrypt';
 import { JwtPayload, PublicUser } from 'src/types';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from './schema/user.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    @InjectModel(User.name) private userModel: Model<User>,
     private jwt: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
   async findAll(): Promise<PublicUser[]> {
     try {
-      const users = await this.usersRepository.find({});
+      const users = await this.userModel.find({}).select("-hash").exec();
 
-      const mapped_users = users.map((e) => exclude(e, ['hash']) as PublicUser);
-
-      return mapped_users;
+      return users;
     } catch (error) {
       throw error;
     }
@@ -34,13 +33,9 @@ export class UserService {
 
   async findOneById(userId: string): Promise<PublicUser> {
     try {
-      const { hash, ...rest } = await this.usersRepository.findOne({
-        where: {
-          id: userId,
-        },
-      });
+      const user = await this.userModel.findById(userId).select("-hash").exec();
 
-      return { ...rest };
+      return user;
     } catch (error) {
       throw error;
     }
@@ -48,7 +43,7 @@ export class UserService {
 
   async updateOneById(userId: string, { password, ...rest }: UpdateUserDto) {
     try {
-      const user = await this.usersRepository.findOne({ where: { id: userId } });
+      const user = await this.userModel.findById(userId);
 
       if (!user) throw new NotFoundException('User not found');
 
@@ -62,9 +57,11 @@ export class UserService {
         hash = await this.generatePassword(password);
       }
 
-      const updatedUser: User = {...user, hash, ...rest}
-
-      const newUser = await this.usersRepository.save(updatedUser);
+      const newUser = await this.userModel.findByIdAndUpdate(
+        userId,
+        { hash, ...rest },
+        { new: true },
+      );
 
       const { hash: newUserHash, ...newRest } = newUser;
 
@@ -78,11 +75,11 @@ export class UserService {
 
   async removeOneById(userId: string): Promise<void> {
     try {
-      const user = await this.usersRepository.findOne({ where: { id: userId } });
+      const user = await this.userModel.findByIdAndDelete(userId);
 
       if (!user) throw new NotFoundException('User not found');
 
-      await this.usersRepository.delete(user);
+      return;
     } catch (error) {
       throw error;
     }
@@ -123,4 +120,3 @@ export class UserService {
     }
   }
 }
-
