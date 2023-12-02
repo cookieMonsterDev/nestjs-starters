@@ -3,7 +3,7 @@ import { User } from 'src/user/entities/user.entity';
 
 @ObjectType()
 export class Auth {
-  @Field(type => User)
+  @Field((type) => User)
   user: User;
 
   @Field()

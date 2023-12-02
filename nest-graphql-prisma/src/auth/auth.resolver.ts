@@ -1,20 +1,22 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { AuthService } from './auth.service';
 import { Auth } from './entities/auth.entity';
-import { CreateUserInput, LoginInput } from './dto';
-
+import { CreateUserInput, LoginUserInput } from './dto';
+import { UseGuards } from '@nestjs/common';
+import { LocalGuard } from './guards';
 
 @Resolver(() => Auth)
 export class AuthResolver {
   constructor(private readonly authService: AuthService) {}
 
   @Mutation(() => Auth)
-  createAuth(@Args('createUserInput') createUserInput: CreateUserInput) {
-    return 
+  register(@Args('createUserInput') createUserInput: CreateUserInput) {
+    return this.authService.create(createUserInput);
   }
 
   @Mutation(() => Auth)
-  updateAuth(@Args('loginInput') loginInput: LoginInput) {
-    return
+  @UseGuards(LocalGuard)
+  login(@Args('loginUserInput') loginUserInput: LoginUserInput) {
+    return this.authService.login(loginUserInput);
   }
 }

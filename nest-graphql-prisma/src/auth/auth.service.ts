@@ -1,25 +1,96 @@
-import { Injectable } from '@nestjs/common';
-
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from 'src/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
+import { CreateUserInput, LoginUserInput } from './dto';
+import { JwtPayload } from 'src/types/jwt.type';
+import { Auth } from './entities/auth.entity';
 
 @Injectable()
 export class AuthService {
-  create(createAuthInput) {
-    return 'This action adds a new auth';
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  async create({ password, ...rest }: CreateUserInput): Promise<Auth> {
+    try {
+      const password_hash = await this.generatePassword(password);
+
+      const user = await this.prisma.user.create({
+        data: {
+          hash: password_hash,
+          ...rest,
+        },
+      });
+      const { hash, ...other } = user;
+
+      const token = await this.generateToken({ ...other });
+
+      return { user: { ...other }, token };
+    } catch (error) {
+      throw error;
+    }
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  async login({ email, password }: LoginUserInput): Promise<Auth> {
+    try {
+      const user = await this.prisma.user.findUnique({ where: { email } });
+
+      if (!user) throw new NotFoundException('Invalid credentials.');
+
+      const passwordMatches = await this.comparePasswords(password, user.hash);
+      if (!passwordMatches)
+        throw new UnauthorizedException('Invalid credentials.');
+
+      const { hash, ...rest } = user;
+
+      const token = await this.generateToken({ ...rest });
+
+      return { user: { ...rest }, token };
+    } catch (error) {
+      throw error;
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  private async generatePassword(password: string): Promise<string> {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(password, salt);
+      return hash;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  update(id: number, updateAuthInput) {
-    return `This action updates a #${id} auth`;
+  private async comparePasswords(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
+    try {
+      const res = await bcrypt.compare(password, hash);
+      return res;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  private async generateToken(payload: JwtPayload) {
+    try {
+      const token = await this.jwt.signAsync(payload, {
+        secret: this.configService.get('AUTH_TOKEN_SECRET'),
+        expiresIn: '15m',
+      });
+
+      return token;
+    } catch (error) {
+      throw error;
+    }
   }
 }
