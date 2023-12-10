@@ -1,4 +1,4 @@
-# Api with auth and user flow using NestJS, Mongoose 
+# REST Api with auth and user flow using NestJS, Mongoose 
 
 ## Environment variables
 

@@ -1,4 +1,6 @@
-# Api with auth and user flow using NestJS with Nodemailer
+# NestJS template for createing mail servise with Nodemailer
+
+<span style="margin-bottom: 10px; color: red; font-weight: 700; red; padding: 10px; border: 2px solid red; border-radius: 10px;">For email service testing use <a href="https://ethereal.email/" target="_blank" style=" text-decoration: underline;">Ethereal Email<a><span>
 
 ## Environment variables
 

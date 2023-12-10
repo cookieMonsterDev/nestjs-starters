@@ -1,4 +1,4 @@
-# Api with auth and user flow using NestJS, TypeORM 
+# REST Api with auth and user flow using NestJS, TypeORM 
 
 ## Environment variables
 

@@ -1,4 +1,4 @@
-# Api with auth and user flow using NestJS, Prisma 
+# REST Api with auth and user flow using NestJS, Prisma 
 
 ## Environment variables
 
